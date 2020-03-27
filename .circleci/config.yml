@@ -27,6 +27,12 @@ executors:
   base:
     docker:
       - image: cimg/base:stable
+  node:
+    docker:
+      - image: cimg/node:12.16
+  go:
+    docker:
+      - image: cimg/go:1.14
   grafana-build:
     docker:
       - image: grafana/build-container:1.2.13
@@ -64,7 +70,7 @@ jobs:
       - run:
           name: Install Grafana Build Pipeline
           command: |
-            curl -fLO https://grafana-downloads.storage.googleapis.com/grafana-build-pipeline/v0.2.7/grabpl
+            curl -fLO https://grafana-downloads.storage.googleapis.com/grafana-build-pipeline/v0.2.8/grabpl
             chmod +x grabpl
             mkdir bin
             mv grabpl bin/
@@ -187,7 +193,7 @@ jobs:
 
   build-release-publisher:
     description: "Build release-publisher"
-    executor: grafana-build
+    executor: go
     steps:
       - checkout
       - run:
@@ -749,7 +755,7 @@ jobs:
 
   codespell:
     docker:
-      - image: circleci/python
+      - image: cimg/python:3.8
     steps:
       - checkout
       - run:
@@ -764,9 +770,7 @@ jobs:
           command: "codespell -I ./words_to_ignore.txt docs/"
 
   lint-go:
-    docker:
-      - image: circleci/golang:1.13.4
-    working_directory: /go/src/github.com/grafana/grafana
+    executor: go
     environment:
       # we need CGO because of go-sqlite3
       CGO_ENABLED: 1
@@ -799,8 +803,7 @@ jobs:
               -conf=./scripts/go/configs/gosec.json ./pkg/...
 
   test-frontend:
-    docker:
-      - image: circleci/node:12
+    executor: node
     steps:
       - checkout
       - run:
@@ -834,8 +837,7 @@ jobs:
           when: on_success
 
   test-backend:
-    docker:
-      - image: circleci/golang:1.13.4
+    executor: go
     working_directory: /go/src/github.com/grafana/grafana
     steps:
       - checkout
@@ -900,8 +902,7 @@ jobs:
             /tmp/workspace/bin/grabpl deploy-to-k8s $CIRCLE_WORKFLOW_ID
 
   release-packages:
-    docker:
-      - image: circleci/node:12
+    executor: node
     steps:
       - run:
           name: Exit if forked PR
